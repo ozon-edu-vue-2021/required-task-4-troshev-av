@@ -28,9 +28,9 @@
 
           <RussianPassportForm
             v-if="isRussianCitizenship"
-            :series.sync="model.passport.series"
-            :number.sync="model.passport.number"
-            :issue-date.sync="model.passport.issueDate"
+            :series.sync="model.passportSeries"
+            :number.sync="model.passportNumber"
+            :issue-date.sync="model.passportIssueDate"
           />
 
           <template v-else>
@@ -40,16 +40,16 @@
             />
 
             <ForeignPassportForm
-              :number.sync="model.foreignPassport.number"
-              :country.sync="model.foreignPassport.country"
-              :type.sync="model.foreignPassport.type"
+              :number.sync="model.foreignPassportNumber"
+              :country.sync="model.foreignPassportCountry"
+              :type.sync="model.foreignPassportType"
               :country-options="citizenshipOptions"
               :type-options="passportTypeOptions"
             />
           </template>
 
           <PreviousFullNameForm
-            :name-changed.sync="model.nameChanged"
+            :name-changed.sync="isNameChanged"
             :f-name.sync="model.prevFName"
             :l-name.sync="model.prevLName"
           />
@@ -77,7 +77,22 @@ import citizenships from "@/assets/data/citizenships.json";
 import passportTypes from "@/assets/data/passport-types.json";
 import debounce from "@/utils/helpers";
 
+import { omitBy } from "lodash/object";
+import { isNull } from "lodash/lang";
+
 const RUSSIAN_CITIZENSHIP_UID = "0e10e8fe-cb2f-42d0-b86a-e38cb4e01f40";
+const RUSSIAN_PASSPORT_FIELDS = [
+  "passportSeries",
+  "passportNumber",
+  "passportIssueDate",
+];
+const FOREIGN_PASSPORT_FIELDS = [
+  "foreignPassportNumber",
+  "foreignPassportCountry",
+  "foreignPassportType",
+];
+const LATIN_NAME_FIELDS = ["latinFName", "latinLName"];
+const PREV_NAME_FIELDS = ["prevFName", "prevLName"];
 
 const initModel = () => ({
   fName: null,
@@ -87,19 +102,14 @@ const initModel = () => ({
   email: null,
   gender: "male",
   citizenship: null,
-  passport: {
-    series: null,
-    number: null,
-    issueDate: null,
-  },
-  foreignPassport: {
-    number: null,
-    country: null,
-    type: null,
-  },
+  passportSeries: null,
+  passportNumber: null,
+  passportIssueDate: null,
+  foreignPassportNumber: null,
+  foreignPassportCountry: null,
+  foreignPassportType: null,
   latinFName: null,
   latinLName: null,
-  nameChanged: false,
   prevFName: null,
   prevLName: null,
 });
@@ -119,8 +129,21 @@ export default {
   data() {
     return {
       citizenshipSearchQuery: "",
+      isNameChanged: false,
       model: initModel(),
     };
+  },
+  watch: {
+    isNameChanged(value) {
+      if (!value) this._resetModelFields(PREV_NAME_FIELDS);
+    },
+    isRussianCitizenship(value) {
+      const fieldsToReset = value
+        ? [...FOREIGN_PASSPORT_FIELDS, ...LATIN_NAME_FIELDS]
+        : RUSSIAN_PASSPORT_FIELDS;
+
+      this._resetModelFields(fieldsToReset);
+    },
   },
   computed: {
     isRussianCitizenship() {
@@ -157,6 +180,9 @@ export default {
     _filterCitizenshipOptions: debounce(function (value) {
       this.citizenshipSearchQuery = value;
     }, 500),
+    _resetModelFields(fields) {
+      fields.forEach((key) => (this.model[key] = null));
+    },
 
     reset() {
       this.model = initModel();
@@ -164,7 +190,9 @@ export default {
       this.$refs.validator.reset();
     },
     submit() {
-      console.log(JSON.stringify(this.model));
+      const data = omitBy(this.model, isNull);
+
+      console.log(JSON.stringify(data));
       this.reset();
     },
   },

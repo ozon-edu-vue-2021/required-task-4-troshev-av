@@ -18,7 +18,7 @@
           <DropDownIcon
             class="ui-select__arrow"
             :class="{ 'ui-select__arrow_inverted': isVisibleDropdown }"
-            @mousedown.native.prevent
+            @mousedown.native.prevent="_onClickArrow()"
           />
         </template>
       </UiInput>
@@ -103,7 +103,7 @@ export default {
     fieldListeners() {
       return {
         click: () => {
-          if (!this.isVisibleDropdown) this.showDropdown();
+          this.showDropdown();
         },
         input: (value) => {
           this._emitSearchQuery(value);
@@ -111,10 +111,12 @@ export default {
         focus: (event) => {
           this.showDropdown();
           this.$emit("focus", event);
+          this.isFieldFocused = true;
         },
         blur: (event) => {
           this.hideDropdown();
           this.$emit("blur", event);
+          this.isFieldFocused = false;
         },
       };
     },
@@ -169,6 +171,11 @@ export default {
       this.select(value);
       this.focus();
       this.hideDropdown();
+    },
+    _onClickArrow() {
+      if (!this.isFieldFocused) return this.focus();
+      else if (!this.isVisibleDropdown) this.showDropdown();
+      else if (this.isVisibleDropdown) this.hideDropdown();
     },
 
     showDropdown() {
